@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>도시 생존 시뮬 · 프로토타입 1차</title>
+  <style>
+:root {
+  --bg: #0d0e11;
+  --bg-2: #13151a;
+  --panel: #181a20;
+  --panel-2: #1e2027;
+  --line: #2b2e38;
+  --text: #ece9e3;
+  --muted: #9b988f;
+  --accent: #e0a93b;
+  --accent-ink: #1a1304;
+  --hp: #cf4d3f;
+  --stagger: #6f94c4;
+  --good: #58b37a;
+  --evade: #4fb3a6;
+  --pinky: #b693ee;
+  --hyeol: #e0475f;
+  --radius: 12px;
+  --font: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 500px at 50% -200px, #1b1a15 0%, transparent 70%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+}
+h1, h2, h3, p { margin: 0; }
+button { font: inherit; color: inherit; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 960px; margin: 0 auto; padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: baseline; gap: 10px; font-weight: 700; letter-spacing: -0.01em; }
+.brand small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.brand-mark {
+  width: 10px; height: 10px; background: var(--accent); transform: rotate(45deg);
+  align-self: center; box-shadow: 0 0 10px rgba(224, 169, 59, 0.6);
+}
+.app-footer { max-width: 960px; margin: 0 auto; padding: 24px 16px 40px; color: var(--muted); font-size: 12px; }
+
+#app { max-width: 960px; margin: 0 auto; padding: 20px 16px 8px; outline: none; }
+
+.screen { display: grid; gap: 18px; }
+.eyebrow { color: var(--accent); font-size: 12px; letter-spacing: 0.08em; font-weight: 600; }
+h1 { font-size: 28px; line-height: 1.25; letter-spacing: -0.02em; }
+h2 { font-size: 20px; letter-spacing: -0.01em; }
+.lead { color: var(--muted); max-width: 52ch; }
+.muted { color: var(--muted); }
+
+/* ---------- 버튼 ---------- */
+.btn {
+  appearance: none; cursor: pointer;
+  padding: 10px 16px; border-radius: 10px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  transition: border-color .15s, background .15s, transform .05s;
+}
+.btn:hover { border-color: #444958; background: #23252e; }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible, .skill:focus-visible, .choice:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.btn.primary:hover { background: #ecb94e; }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 6px 12px; font-size: 13px; }
+.btn.danger { border-color: #5a2a26; color: #f0a79f; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* ---------- 출생 ---------- */
+.name-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.field { display: grid; gap: 6px; }
+.field label, .field .label { font-size: 13px; color: var(--muted); }
+input[type="text"], input[type="number"] {
+  background: var(--bg-2); border: 1px solid var(--line); color: var(--text);
+  border-radius: 10px; padding: 10px 12px; min-width: 220px;
+}
+input[type="number"] { min-width: 0; width: 90px; }
+
+.birth-card {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line); border-radius: 16px; padding: 22px;
+  display: grid; gap: 16px;
+  border-top: 3px solid var(--tone, var(--line));
+}
+.birth-card.citizen { --tone: #6c717f; }
+.birth-card.pinky { --tone: var(--pinky); }
+.birth-card.hyeolgwi { --tone: var(--hyeol); }
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  border: 1px solid var(--tone, var(--line)); color: var(--tone, var(--text));
+}
+.birth-title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.birth-story { color: #cbc7bd; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.stat { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.stat b { display: block; font-size: 20px; letter-spacing: -0.01em; }
+.stat span { color: var(--muted); font-size: 12px; }
+.note { color: var(--muted); font-size: 13px; }
+
+/* ---------- 선택 카드 ---------- */
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.choice {
+  text-align: left; cursor: pointer; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px; display: grid; gap: 6px;
+  transition: border-color .15s, background .15s;
+}
+.choice:hover { border-color: #444958; }
+.choice[aria-pressed="true"] { border-color: var(--accent); background: #1f1c13; box-shadow: inset 0 0 0 1px var(--accent); }
+.choice b { font-size: 16px; }
+.choice small { color: var(--muted); }
+.mini-skills { display: flex; flex-wrap: wrap; gap: 4px; }
+.mini-skills span { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--bg-2); border: 1px solid var(--line); color: #cfccc3; }
+
+details.test { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+details.test summary { cursor: pointer; color: var(--muted); }
+.test-grid { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 12px; align-items: end; }
+.check { display: flex; gap: 8px; align-items: center; }
+
+/* ---------- 전투 ---------- */
+.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.round-badge { font-size: 18px; font-weight: 700; }
+.round-badge small { margin-left: 10px; color: var(--muted); font-weight: 400; font-size: 12px; }
+
+.arena { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
+.vs { align-self: center; color: var(--muted); font-weight: 700; letter-spacing: .1em; }
+.fighter {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px; display: grid; gap: 10px; position: relative;
+}
+.fighter.player { border-top: 3px solid var(--accent); }
+.fighter.enemy { border-top: 3px solid #7b8090; }
+.fighter .name { font-weight: 700; font-size: 17px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.fighter .name small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.meter { display: grid; gap: 4px; }
+.meter-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.meter-head b { color: var(--text); font-weight: 600; }
+.bar { height: 10px; background: var(--bg-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+.bar > i { display: block; height: 100%; border-radius: 999px; transition: width .35s ease; }
+.bar.hp > i { background: linear-gradient(90deg, #a53a2f, var(--hp)); }
+.bar.stg > i { background: linear-gradient(90deg, #4f72a0, var(--stagger)); }
+.pips { display: flex; gap: 7px; padding: 3px 2px; }
+.pip { width: 13px; height: 13px; transform: rotate(45deg); border-radius: 2px; border: 1.5px solid #555a68; }
+.pip.on { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(224, 169, 59, .55); }
+.pip.cap { background: transparent; border-color: #7b7255; }
+.pip.locked { border-style: dashed; border-color: #3a3d48; opacity: .6; }
+.pips-text { font-size: 12px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--bg-2); border: 1px solid var(--line); color: #cfccc3; }
+.chip.shin { color: #9bd6b0; border-color: #2f5a41; }
+.chip.wang { color: #f0cf8a; border-color: #5d4a1c; }
+.chip.tattoo { color: #d9b8f5; border-color: #4c3763; }
+.stun {
+  position: absolute; top: 10px; right: 10px; font-size: 12px; font-weight: 700; padding: 3px 10px;
+  border-radius: 999px; background: #1b2740; color: #a9c6f0; border: 1px solid #3a5a8c;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse { 50% { box-shadow: 0 0 0 5px rgba(111, 148, 196, .18); } }
+.fighter.hit { animation: hit .4s ease; }
+@keyframes hit {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-5px); background: #271716; }
+  45% { transform: translateX(4px); }
+  70% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+.report { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 8px; }
+.report h3 { font-size: 14px; color: var(--muted); font-weight: 600; }
+.picks { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; }
+.picks b { color: var(--accent); font-weight: 600; }
+.clashes li { padding: 8px 10px; border-radius: 8px; background: var(--bg-2); border-left: 3px solid #555a68; margin-top: 6px; }
+.clashes li.win, .clashes li.unopposed { border-left-color: var(--accent); }
+.clashes li.lose { border-left-color: var(--hp); }
+.clashes li.guard, .clashes li.evade { border-left-color: var(--good); }
+.events li { color: #a9c6f0; font-size: 14px; margin-top: 4px; }
+
+.skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.skill {
+  cursor: pointer; text-align: left; background: var(--panel); border: 1px solid var(--line);
+  border-left: 4px solid var(--kind, #555a68); border-radius: var(--radius); padding: 12px 14px;
+  display: grid; gap: 5px; transition: border-color .15s, background .15s, transform .05s;
+}
+.skill.attack { --kind: var(--hp); }
+.skill.defense { --kind: var(--stagger); }
+.skill.evade { --kind: var(--evade); }
+.skill:hover:not(:disabled) { background: var(--panel-2); border-color: #444958; border-left-color: var(--kind); }
+.skill:active:not(:disabled) { transform: translateY(1px); }
+.skill:disabled { opacity: .42; cursor: not-allowed; }
+.skill .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.skill .nm { font-weight: 700; font-size: 16px; }
+.skill kbd { font-family: inherit; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; }
+.stars { color: var(--accent); letter-spacing: 2px; font-size: 14px; min-height: 20px; }
+.skill .meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.skill .desc { font-size: 12px; color: #bdb9af; }
+
+.callout { background: #151c2b; border: 1px solid #2d4468; border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; }
+.result { background: var(--panel-2); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 10px; border-top: 3px solid var(--tone, var(--accent)); }
+.result.win { --tone: var(--good); }
+.result.death { --tone: var(--hp); }
+.result .big { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+
+.log { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
+.log summary { cursor: pointer; color: var(--muted); }
+.log ol { max-height: 220px; overflow: auto; margin-top: 8px; display: grid; gap: 4px; font-size: 13px; color: #c9c5bb; }
+.log li.round-mark { color: var(--accent); font-weight: 600; margin-top: 6px; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 640px) {
+  h1 { font-size: 24px; }
+  .arena { grid-template-columns: 1fr; }
+  .vs { display: none; }
+  .brand small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fighter.hit, .stun { animation: none; }
+  .bar > i { transition: none; }
+}
+
+</style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>도시 생존 시뮬</span><small>프로토타입 1차 · 출생 + 전투</small></div>
+    <button class="btn ghost small" type="button" data-action="home">처음으로</button>
+  </header>
+  <main id="app" tabindex="-1"></main>
+  <footer class="app-footer">수치는 모두 임시값이다. 설계서 v0.4 기준.</footer>
+
+  <script>
+/* 데이터: 출생 확률, 구역, 무기, 스킬, 적. 수치는 모두 임시값 (설계서 v0.4 기준) */
+(function (root) {
+  'use strict';
+
+  const SKILL_LIST = [
+    // 단검
+    { id: 'stab', name: '찌르기', weapon: 'dagger', type: 'attack', stars: 1, power: [2, 4], desc: '낮은 위력, 안정적' },
+    { id: 'flurry', name: '연속 베기', weapon: 'dagger', type: 'attack', stars: 2, power: [2, 4], hits: 2, desc: '2회 연속 판정' },
+    { id: 'vital', name: '급소 일격', weapon: 'dagger', type: 'attack', stars: 3, power: [7, 13], desc: '높은 위력' },
+    { id: 'twist', name: '몸 비틀기', weapon: 'dagger', type: 'evade', power: [3, 7], desc: '회피 성공 시 빛 +1' },
+    // 장검
+    { id: 'slash', name: '가로 베기', weapon: 'sword', type: 'attack', stars: 1, power: [2, 4], desc: '낮은 위력, 안정적' },
+    { id: 'cleave', name: '내려치기', weapon: 'sword', type: 'attack', stars: 2, power: [4, 8], desc: '중간 위력' },
+    { id: 'finisher', name: '필살 참격', weapon: 'sword', type: 'attack', stars: 3, power: [7, 13], desc: '높은 위력' },
+    { id: 'guard', name: '막기', weapon: 'sword', type: 'defense', power: [3, 6], desc: '방어 성공 시 빛 +1' },
+    // 둔기
+    { id: 'bash', name: '후려치기', weapon: 'blunt', type: 'attack', stars: 2, power: [4, 8], effect: 'pierce', pierce: 0.5, desc: '방어 값 50% 관통' },
+    { id: 'crush', name: '분쇄', weapon: 'blunt', type: 'attack', stars: 3, power: [7, 13], effect: 'tiebreak', desc: '동점이면 승리' },
+    { id: 'brace', name: '버티기', weapon: 'blunt', type: 'defense', power: [3, 6], desc: '방어 성공 시 빛 +1' },
+    // 맨손
+    { id: 'punch', name: '주먹', weapon: 'fist', type: 'attack', stars: 1, power: [2, 4], desc: '기본 공격' },
+    { id: 'kick', name: '발차기', weapon: 'fist', type: 'attack', stars: 2, power: [4, 8], desc: '중간 위력' },
+    { id: 'dodge', name: '회피', weapon: 'fist', type: 'evade', power: [3, 7], desc: '회피 성공 시 빛 +1' },
+  ];
+
+  const SKILLS = {};
+  SKILL_LIST.forEach(function (s) {
+    s.hits = s.hits || 1;
+    s.stars = s.type === 'attack' ? s.stars : 0;
+    s.cost = s.type === 'attack' ? s.stars : 0;
+    SKILLS[s.id] = s;
+  });
+
+  const WEAPONS = {
+    dagger: { id: 'dagger', name: '단검', desc: '빠르고 가벼운 칼날. 연타와 회피가 특기.', skills: ['stab', 'flurry', 'vital', 'twist'] },
+    sword: { id: 'sword', name: '장검', desc: '균형 잡힌 칼. 안정적인 방어를 갖췄다.', skills: ['slash', 'cleave', 'finisher', 'guard'] },
+    blunt: { id: 'blunt', name: '둔기', desc: '묵직한 한 방. 방어를 뚫고 동점도 이긴다.', skills: ['bash', 'crush', 'brace'] },
+    fist: { id: 'fist', name: '맨손', desc: '아무것도 들지 않은 주먹과 발.', skills: ['punch', 'kick', 'dodge'] },
+  };
+
+  const ENEMIES = [
+    { id: 'e9', grade: '9급', name: '거리의 부랑자', hp: 60, str: 5, agi: 5, wang: 0, shin: false, weapon: 'fist' },
+    { id: 'e6', grade: '6급', name: '초보 해결사', hp: 120, str: 10, agi: 8, wang: 0, shin: false, weapon: 'sword' },
+    { id: 'e3', grade: '3급', name: '숙련 해결사', hp: 220, str: 20, agi: 15, wang: 1, shin: false, weapon: 'blunt' },
+    { id: 'e1', grade: '1급', name: '이름난 해결사', hp: 400, str: 35, agi: 25, wang: 3, shin: true, weapon: 'dagger' },
+  ];
+
+  const BIRTH = {
+    types: [
+      { id: 'citizen', name: '평범한 시민', p: 0.90 },
+      { id: 'pinky', name: '소지 출신 가문', p: 0.07 },
+      { id: 'hyeolgwi', name: '혈귀', p: 0.03 },
+    ],
+    hyeolgwiGrades: [
+      { grade: 3, p: 0.60, bonus: 2 },
+      { grade: 2, p: 0.30, bonus: 4 },
+      { grade: 1, p: 0.10, bonus: 6 },
+    ],
+    zones: [
+      { id: 'alley', name: '뒷골목', p: 0.35, hp: 110, an: 50, conn: { type: '뒷세계', val: 2 },
+        story: '좁은 골목의 젖은 벽 사이에서 첫 울음을 울었다.' },
+      { id: 'residential', name: '일반 주거지', p: 0.50, hp: 100, an: 150, conn: null,
+        story: '낡았지만 불이 켜진 주거지의 작은 방에서 태어났다.' },
+      { id: 'rich', name: '부유 지구', p: 0.15, hp: 90, an: 500, conn: { type: '상류', val: 2 },
+        story: '높은 담장 안쪽, 조용한 부유 지구에서 태어났다.' },
+    ],
+    pinky: { hp: 100, an: 100, conn: { type: '소지', val: 3 },
+      story: '소지의 이름을 가진 가문에서 태어났다. 태어나자마자 이름의 무게가 따라붙었다.' },
+    hyeolgwi: { hp: 100, an: 100,
+      story: '첫 울음과 함께, 피에 대한 갈증도 함께 태어났다.' },
+    baseStat: 5,
+  };
+
+  const DATA = { SKILLS: SKILLS, SKILL_LIST: SKILL_LIST, WEAPONS: WEAPONS, ENEMIES: ENEMIES, BIRTH: BIRTH };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = DATA;
+  } else {
+    root.PMG = root.PMG || {};
+    root.PMG.DATA = DATA;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+/* 출생 판정 */
+(function (root) {
+  'use strict';
+
+  const DATA = (typeof module !== 'undefined' && module.exports) ? require('./data.js') : root.PMG.DATA;
+  const B = DATA.BIRTH;
+
+  function pick(table, rng) {
+    const r = rng();
+    let acc = 0;
+    for (let i = 0; i < table.length; i++) {
+      acc += table[i].p;
+      if (r < acc) return table[i];
+    }
+    return table[table.length - 1];
+  }
+
+  function rollBirth(rng) {
+    rng = rng || Math.random;
+    const type = pick(B.types, rng);
+    const stats = { str: B.baseStat, con: B.baseStat, agi: B.baseStat };
+    const out = { type: type.id, typeName: type.name, zone: null, zoneName: null, grade: null,
+      baseHp: 0, an: 0, conn: [], stats: stats, story: '' };
+
+    if (type.id === 'citizen') {
+      const z = pick(B.zones, rng);
+      out.zone = z.id; out.zoneName = z.name;
+      out.baseHp = z.hp; out.an = z.an;
+      out.conn = z.conn ? [z.conn] : [];
+      out.story = z.story;
+    } else if (type.id === 'pinky') {
+      out.baseHp = B.pinky.hp; out.an = B.pinky.an;
+      out.conn = [B.pinky.conn];
+      out.story = B.pinky.story;
+    } else {
+      const g = pick(B.hyeolgwiGrades, rng);
+      out.grade = g.grade;
+      stats.str += g.bonus; stats.con += g.bonus; stats.agi += g.bonus;
+      out.baseHp = B.hyeolgwi.hp; out.an = B.hyeolgwi.an;
+      out.story = B.hyeolgwi.story;
+    }
+    // 체질 1포인트마다 최대 생명력 +5 (시작값 5 기준)
+    out.maxHp = out.baseHp + (stats.con - B.baseStat) * 5;
+    return out;
+  }
+
+  const api = { rollBirth: rollBirth };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.PMG = root.PMG || {}; root.PMG.Birth = api; }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+/* 전투 엔진: 빛, 별, 합, 방어/회피, 흐트러짐 (설계서 v0.4) */
+(function (root) {
+  'use strict';
+
+  const DATA = (typeof module !== 'undefined' && module.exports) ? require('./data.js') : root.PMG.DATA;
+  const SKILLS = DATA.SKILLS;
+
+  const LIGHT_START = 3;      // 시작 빛 최대치
+  const LIGHT_CAP = 9;        // 빛 최대치 상한
+  const LIGHT_GROW_EVERY = 3; // 3라운드마다 최대치 +1
+  const STAGGER_RATIO = 0.5;  // 흐트러짐 게이지 = 최대 생명력의 50% (임시)
+
+  function randInt(rng, lo, hi) {
+    return lo + Math.floor(rng() * (hi - lo + 1));
+  }
+
+  function createFighter(cfg) {
+    const maxStagger = Math.max(1, Math.round(cfg.maxHp * STAGGER_RATIO));
+    return {
+      name: cfg.name,
+      maxHp: cfg.maxHp, hp: cfg.maxHp,
+      maxStagger: maxStagger, stagger: maxStagger,
+      maxLight: LIGHT_START, light: LIGHT_START,
+      str: cfg.str || 5, agi: cfg.agi || 5,
+      wang: Math.min(7, cfg.wang || 0),
+      shin: !!cfg.shin,
+      tattoo: cfg.tattoo || 0,
+      skills: cfg.skills.slice(),
+      staggered: false,
+    };
+  }
+
+  function createBattle(playerCfg, enemyCfg, opts) {
+    opts = opts || {};
+    return {
+      round: 1,
+      player: createFighter(playerCfg),
+      enemy: createFighter(enemyCfg),
+      lethal: opts.lethal !== false,
+      over: false,
+      outcome: null, // win | defeat | death | draw | retreat
+    };
+  }
+
+  // 합 위력 보너스: 망 +3씩, 강화문신 +1씩, 힘(공격 5당 +1), 민첩(회피 5당 +1)
+  function bonusFor(f, skill) {
+    let b = f.wang * 3 + f.tattoo;
+    if (skill.type === 'attack') b += Math.floor(f.str / 5);
+    else if (skill.type === 'evade') b += Math.floor(f.agi / 5);
+    return b;
+  }
+
+  function rollDie(f, skill, rng) {
+    const base = randInt(rng, skill.power[0], skill.power[1]);
+    const bonus = bonusFor(f, skill);
+    return { base: base, bonus: bonus, total: base + bonus };
+  }
+
+  // 라운드 시작: 3라운드마다 빛 최대치 +1, 빛 +1 충전 (1라운드는 가득 찬 상태로 시작)
+  function beginRound(state) {
+    if (state.round <= 1) return;
+    [state.player, state.enemy].forEach(function (f) {
+      if ((state.round - 1) % LIGHT_GROW_EVERY === 0) f.maxLight = Math.min(LIGHT_CAP, f.maxLight + 1);
+      f.light = Math.min(f.maxLight, f.light + 1);
+    });
+  }
+
+  function gainLight(f, n) {
+    const before = f.light;
+    f.light = Math.min(f.maxLight, f.light + n);
+    return f.light - before;
+  }
+
+  // 피해 처리: 흐트러짐 중이면 x2, 신이 있으면 x0.9, 반올림 (최소 1)
+  function applyDamage(target, raw) {
+    if (raw <= 0) return 0;
+    let v = raw;
+    if (target.staggered) v *= 2;
+    if (target.shin) v *= 0.9;
+    v = Math.max(1, Math.round(v));
+    target.hp = Math.max(0, target.hp - v);
+    target.stagger = Math.max(0, target.stagger - v);
+    return v;
+  }
+
+  function label(f, skill, die) {
+    return f.name + '의 ' + skill.name + '(' + die.total + ')';
+  }
+
+  // 한 번의 합 판정. P/E 각각 스킬(ps/es)과 주사위(pd/ed)는 null일 수 있다.
+  function clash(P, ps, pd, E, es, ed) {
+    const rec = { pDie: pd, eDie: ed, dmgToP: 0, dmgToE: 0, pLight: 0, eLight: 0, kind: '', text: '' };
+    const pAtk = !!ps && ps.type === 'attack';
+    const eAtk = !!es && es.type === 'attack';
+
+    if (!pd && !ed) { rec.kind = 'idle'; rec.text = '아무도 움직이지 못했다.'; return rec; }
+
+    // 상대에게 주사위가 없는 경우 (흐트러짐 또는 남는 타수)
+    if (pd && !ed) {
+      if (pAtk) {
+        rec.dmgToE = applyDamage(E, pd.total);
+        rec.kind = 'unopposed';
+        rec.text = label(P, ps, pd) + ' 막을 수단 없이 적중 → ' + E.name + ' ' + rec.dmgToE + ' 피해';
+      } else { rec.kind = 'idle'; rec.text = label(P, ps, pd) + ' 상대가 움직이지 않았다.'; }
+      return rec;
+    }
+    if (!pd && ed) {
+      if (eAtk) {
+        rec.dmgToP = applyDamage(P, ed.total);
+        rec.kind = 'unopposed';
+        rec.text = label(E, es, ed) + ' 막을 수단 없이 적중 → ' + P.name + ' ' + rec.dmgToP + ' 피해';
+      } else { rec.kind = 'idle'; rec.text = label(E, es, ed) + ' 상대가 움직이지 않았다.'; }
+      return rec;
+    }
+
+    const head = label(P, ps, pd) + ' vs ' + label(E, es, ed) + ' — ';
+
+    if (pAtk && eAtk) {
+      let winner = 0;
+      if (pd.total > ed.total) winner = 1;
+      else if (ed.total > pd.total) winner = -1;
+      else {
+        const pt = ps.effect === 'tiebreak', et = es.effect === 'tiebreak';
+        if (pt && !et) winner = 1; else if (et && !pt) winner = -1;
+      }
+      if (winner === 1) {
+        rec.dmgToE = applyDamage(E, pd.total); rec.kind = 'win';
+        rec.text = head + P.name + ' 승리, ' + E.name + ' ' + rec.dmgToE + ' 피해';
+      } else if (winner === -1) {
+        rec.dmgToP = applyDamage(P, ed.total); rec.kind = 'lose';
+        rec.text = head + E.name + ' 승리, ' + P.name + ' ' + rec.dmgToP + ' 피해';
+      } else { rec.kind = 'tie'; rec.text = head + '동점, 서로 상쇄'; }
+      return rec;
+    }
+
+    if (pAtk || eAtk) {
+      const aSide = pAtk ? 'p' : 'e';
+      const A = pAtk ? P : E, D = pAtk ? E : P;
+      const as = pAtk ? ps : es, ds = pAtk ? es : ps;
+      const ad = pAtk ? pd : ed, dd = pAtk ? ed : pd;
+      let dmg = 0, kind = '', tail = '';
+      if (ds.type === 'defense') {
+        const eff = as.effect === 'pierce' ? Math.floor(dd.total * (1 - as.pierce)) : dd.total;
+        dmg = Math.max(0, ad.total - eff);
+        if (ad.total <= eff) {
+          kind = 'guard';
+          const g = gainLight(D, 1);
+          tail = D.name + ' 방어 성공' + (g ? ', 빛 +1' : '');
+          if (aSide === 'p') rec.eLight = g; else rec.pLight = g;
+        } else {
+          kind = 'guardPartial';
+          tail = D.name + ' 방어했지만 ' + (as.effect === 'pierce' ? '관통되어 ' : '') + '일부가 뚫림';
+        }
+      } else { // evade
+        if (dd.total > ad.total) {
+          kind = 'evade';
+          const g = gainLight(D, 1);
+          tail = D.name + ' 회피 성공' + (g ? ', 빛 +1' : '');
+          if (aSide === 'p') rec.eLight = g; else rec.pLight = g;
+        } else {
+          dmg = ad.total; kind = 'evadeFail';
+          tail = D.name + ' 회피 실패';
+        }
+      }
+      const dealt = dmg > 0 ? applyDamage(D, dmg) : 0;
+      if (dealt > 0) tail += ' → ' + D.name + ' ' + dealt + ' 피해';
+      if (aSide === 'p') rec.dmgToE = dealt; else rec.dmgToP = dealt;
+      rec.kind = kind;
+      rec.text = head + tail;
+      return rec;
+    }
+
+    rec.kind = 'idle';
+    rec.text = head + '둘 다 수비 자세, 아무 일도 없었다.';
+    return rec;
+  }
+
+  function chooseEnemySkill(state, rng) {
+    const e = state.enemy, p = state.player;
+    if (e.staggered) return null;
+    const usable = e.skills.filter(function (id) { return SKILLS[id].cost <= e.light; }).map(function (id) { return SKILLS[id]; });
+    const attacks = usable.filter(function (s) { return s.type === 'attack'; });
+    const others = usable.filter(function (s) { return s.type !== 'attack'; });
+    if (!attacks.length) return others.length ? others[Math.floor(rng() * others.length)].id : null;
+    if (p.staggered) {
+      return attacks.reduce(function (a, b) { return b.stars > a.stars ? b : a; }).id;
+    }
+    if (others.length && rng() < 0.22) return others[Math.floor(rng() * others.length)].id;
+    const total = attacks.reduce(function (s, a) { return s + a.stars; }, 0);
+    let r = rng() * total;
+    for (let i = 0; i < attacks.length; i++) {
+      r -= attacks[i].stars;
+      if (r < 0) return attacks[i].id;
+    }
+    return attacks[attacks.length - 1].id;
+  }
+
+  function canUse(state, fighter, skillId) {
+    const s = SKILLS[skillId];
+    return !!s && fighter.skills.indexOf(skillId) >= 0 && !fighter.staggered && s.cost <= fighter.light;
+  }
+
+  // 한 라운드 진행. 플레이어가 흐트러진 상태면 playerSkillId는 무시된다.
+  function resolveRound(state, playerSkillId, rng) {
+    if (state.over) throw new Error('전투가 이미 끝났다');
+    rng = rng || Math.random;
+    const P = state.player, E = state.enemy;
+    const pStunned = P.staggered, eStunned = E.staggered;
+    const report = { round: state.round, pSkill: null, eSkill: null, clashes: [], events: [], pStunned: pStunned, eStunned: eStunned };
+
+    let ps = null, es = null;
+    if (!pStunned) {
+      if (!canUse(state, P, playerSkillId)) throw new Error('사용할 수 없는 스킬');
+      ps = SKILLS[playerSkillId];
+    }
+    const eId = chooseEnemySkill(state, rng);
+    es = eId ? SKILLS[eId] : null;
+    if (ps) P.light -= ps.cost;
+    if (es) E.light -= es.cost;
+    report.pSkill = ps; report.eSkill = es;
+
+    const n = Math.max(ps ? ps.hits : 0, es ? es.hits : 0);
+    for (let i = 0; i < n; i++) {
+      const pd = ps && i < ps.hits ? rollDie(P, ps, rng) : null;
+      const ed = es && i < es.hits ? rollDie(E, es, rng) : null;
+      report.clashes.push(clash(P, ps, pd, E, es, ed));
+      if (P.hp <= 0 || E.hp <= 0) break;
+    }
+
+    // 흐트러짐 정리: 이번 라운드에 흐트러져 있던 쪽은 풀리고, 게이지가 0이 된 쪽은 다음 라운드부터 흐트러짐
+    [[P, pStunned], [E, eStunned]].forEach(function (pair) {
+      const f = pair[0], wasStunned = pair[1];
+      if (wasStunned) {
+        f.staggered = false; f.stagger = f.maxStagger;
+        report.events.push(f.name + '의 흐트러짐이 풀렸다');
+      } else if (f.stagger <= 0 && f.hp > 0) {
+        f.staggered = true;
+        report.events.push(f.name + ' 흐트러짐! 다음 라운드에 행동할 수 없고 피해를 2배로 받는다');
+      }
+    });
+
+    const pDead = P.hp <= 0, eDead = E.hp <= 0;
+    if (pDead || eDead) {
+      state.over = true;
+      if (pDead && eDead) state.outcome = state.lethal ? 'death' : 'draw';
+      else if (eDead) state.outcome = 'win';
+      else state.outcome = state.lethal ? 'death' : 'defeat';
+    } else {
+      state.round += 1;
+      beginRound(state);
+    }
+    report.over = state.over;
+    report.outcome = state.outcome;
+    return report;
+  }
+
+  function retreat(state) {
+    state.over = true;
+    state.outcome = 'retreat';
+  }
+
+  const api = {
+    LIGHT_START: LIGHT_START, LIGHT_CAP: LIGHT_CAP,
+    createBattle: createBattle, resolveRound: resolveRound, retreat: retreat,
+    canUse: canUse, bonusFor: bonusFor,
+    _t: { clash: clash, applyDamage: applyDamage, rollDie: rollDie, beginRound: beginRound, createFighter: createFighter, chooseEnemySkill: chooseEnemySkill },
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.PMG = root.PMG || {}; root.PMG.Battle = api; }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+/* 화면과 흐름 (1차 프로토타입: 출생 → 전투 시험) */
+(function () {
+  'use strict';
+
+  const DATA = window.PMG.DATA;
+  const Birth = window.PMG.Birth;
+  const Battle = window.PMG.Battle;
+  const SKILLS = DATA.SKILLS;
+  const app = document.getElementById('app');
+
+  const S = {
+    screen: 'birth',
+    name: '',
+    birth: null,
+    setup: { weapon: 'dagger', enemy: 0, lethal: true, shin: false, wang: 0, tattoo: 0 },
+    battle: null,
+    report: null,
+    log: [],
+    flash: { p: false, e: false },
+    focusTarget: null,
+  };
+
+  const esc = function (s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  const pct = function (cur, max) { return Math.max(0, Math.min(100, (cur / max) * 100)); };
+  const typeLabel = { attack: '공격', defense: '방어', evade: '회피' };
+
+  /* ---------- 출생 화면 ---------- */
+  function birthTitle(b) {
+    if (b.type === 'citizen') return b.zoneName + '의 시민';
+    if (b.type === 'pinky') return '소지 출신 가문';
+    return '혈귀 ' + b.grade + '등급';
+  }
+
+  function renderBirth() {
+    const b = S.birth;
+    let body;
+    if (!b) {
+      body =
+        '<form class="name-form" data-form="roll">' +
+        '<div class="field"><label for="name">이름</label>' +
+        '<input id="name" type="text" maxlength="12" autocomplete="off" placeholder="이름을 입력" value="' + esc(S.name) + '"></div>' +
+        '<button class="btn primary" type="submit">태어나기</button></form>';
+    } else {
+      const conn = b.conn.length ? b.conn.map(function (c) { return c.type + ' +' + c.val; }).join(', ') : '없음';
+      const gradeNote = b.type === 'hyeolgwi'
+        ? '<p class="note">혈귀의 혈기(갈증) 시스템은 2차 이후에 들어간다. 지금은 높은 능력치만 반영된다.</p>' : '';
+      body =
+        '<article class="birth-card ' + b.type + '" aria-live="polite">' +
+        '<div class="row"><span class="badge">' + esc(b.typeName) + (b.grade ? ' · ' + b.grade + '등급' : '') + '</span>' +
+        (b.type === 'citizen' ? '<span class="badge">' + esc(b.zoneName) + '</span>' : '') + '</div>' +
+        '<h2 class="birth-title">' + esc(S.name || '이름 없음') + ', ' + esc(birthTitle(b)) + '</h2>' +
+        '<p class="birth-story">' + esc(b.story) + '</p>' +
+        '<div class="stat-grid">' +
+        stat('생명력', b.maxHp) + stat('안', b.an) + stat('힘', b.stats.str) + stat('체질', b.stats.con) + stat('민첩', b.stats.agi) +
+        stat('연줄', conn) + '</div>' + gradeNote + '</article>' +
+        '<div class="row">' +
+        '<button class="btn primary" type="button" data-action="toSetup">이 인생으로 전투 시험 →</button>' +
+        '<button class="btn" type="button" data-action="reroll">다시 태어나기 (테스트용)</button></div>';
+    }
+    app.innerHTML =
+      '<section class="screen">' +
+      '<div><p class="eyebrow">1차 프로토타입</p><h1>어디에서 태어날까</h1>' +
+      '<p class="lead">출생은 운이다. 대부분은 평범한 시민이지만, 아주 드물게 특별한 출생이 나온다.</p></div>' +
+      body + '</section>';
+    S.focusTarget = b ? '[data-action="toSetup"]' : '#name';
+  }
+  function stat(label, value) {
+    return '<div class="stat"><b>' + esc(value) + '</b><span>' + esc(label) + '</span></div>';
+  }
+
+  /* ---------- 전투 설정 화면 ---------- */
+  function renderSetup() {
+    const st = S.setup;
+    const weapons = Object.keys(DATA.WEAPONS).map(function (id) {
+      const w = DATA.WEAPONS[id];
+      return '<button class="choice" type="button" data-action="pickWeapon" data-id="' + id + '" aria-pressed="' + (st.weapon === id) + '">' +
+        '<b>' + esc(w.name) + '</b><small>' + esc(w.desc) + '</small>' +
+        '<span class="mini-skills">' + w.skills.map(function (k) { return '<span>' + esc(SKILLS[k].name) + '</span>'; }).join('') + '</span></button>';
+    }).join('');
+    const enemies = DATA.ENEMIES.map(function (e, i) {
+      return '<button class="choice" type="button" data-action="pickEnemy" data-idx="' + i + '" aria-pressed="' + (st.enemy === i) + '">' +
+        '<b>' + esc(e.name) + ' <small>' + esc(e.grade) + '</small></b>' +
+        '<small>생명력 ' + e.hp + ' · ' + esc(DATA.WEAPONS[e.weapon].name) + (e.shin ? ' · 신' : '') + (e.wang ? ' · 망 ×' + e.wang : '') + '</small></button>';
+    }).join('');
+    const mode =
+      '<button class="choice" type="button" data-action="pickMode" data-lethal="1" aria-pressed="' + st.lethal + '"><b>의뢰 전투</b><small>생명력이 0이 되면 사망한다. 도주하면 사망 없이 패배로 처리된다.</small></button>' +
+      '<button class="choice" type="button" data-action="pickMode" data-lethal="0" aria-pressed="' + !st.lethal + '"><b>시험 전투</b><small>승급시험과 훈련 대련용. 져도 사망하지 않는다.</small></button>';
+
+    app.innerHTML =
+      '<section class="screen">' +
+      '<div><p class="eyebrow">전투 시험</p><h1>무기와 상대를 고르자</h1>' +
+      '<p class="lead">무기가 곧 스킬 세트다. 빛을 모았다 쓰고, 방어와 회피로 빛을 되찾으며 싸운다.</p></div>' +
+      '<div><h2>무기</h2><div class="choices" style="margin-top:10px">' + weapons + '</div></div>' +
+      '<div><h2>상대</h2><div class="choices" style="margin-top:10px">' + enemies + '</div></div>' +
+      '<div><h2>전투 종류</h2><div class="choices" style="margin-top:10px">' + mode + '</div></div>' +
+      '<details class="test"><summary>테스트 옵션 (신, 망, 강화문신)</summary><div class="test-grid">' +
+      '<label class="check"><input type="checkbox" data-field="shin"' + (st.shin ? ' checked' : '') + '> 신(心) 보유</label>' +
+      '<div class="field"><label for="wang">망(望) 개수 (0~7)</label><input id="wang" type="number" min="0" max="7" value="' + st.wang + '" data-field="wang"></div>' +
+      '<div class="field"><label for="tattoo">강화문신 개수</label><input id="tattoo" type="number" min="0" max="50" value="' + st.tattoo + '" data-field="tattoo"></div>' +
+      '</div></details>' +
+      '<div class="row"><button class="btn primary" type="button" data-action="start">전투 시작</button>' +
+      '<button class="btn" type="button" data-action="toBirth">출생으로 돌아가기</button></div>' +
+      '</section>';
+    S.focusTarget = '[data-action="start"]';
+  }
+
+  /* ---------- 전투 화면 ---------- */
+  function pips(f) {
+    let h = '';
+    for (let i = 1; i <= Battle.LIGHT_CAP; i++) {
+      h += '<span class="pip ' + (i <= f.light ? 'on' : (i <= f.maxLight ? 'cap' : 'locked')) + '"></span>';
+    }
+    return '<div class="pips" role="img" aria-label="빛 ' + f.light + ', 최대 ' + f.maxLight + '">' + h + '</div>' +
+      '<div class="pips-text">빛 ' + f.light + ' / ' + f.maxLight + '</div>';
+  }
+
+  function fighterPanel(f, side, sub) {
+    const chips = [];
+    if (f.shin) chips.push('<span class="chip shin" title="받는 피해 10% 감소">신(心)</span>');
+    if (f.wang) chips.push('<span class="chip wang" title="합 위력 +3씩">망(望) ×' + f.wang + '</span>');
+    if (f.tattoo) chips.push('<span class="chip tattoo" title="합 위력 +1씩">강화문신 ×' + f.tattoo + '</span>');
+    chips.push('<span class="chip">힘 ' + f.str + '</span>', '<span class="chip">민첩 ' + f.agi + '</span>');
+    const hit = S.flash[side === 'player' ? 'p' : 'e'] ? ' hit' : '';
+    return '<div class="fighter ' + side + hit + '">' +
+      (f.staggered ? '<span class="stun">흐트러짐</span>' : '') +
+      '<div class="name">' + esc(f.name) + (sub ? ' <small>' + esc(sub) + '</small>' : '') + '</div>' +
+      '<div class="meter"><div class="meter-head"><span>생명력</span><b>' + f.hp + ' / ' + f.maxHp + '</b></div>' +
+      '<div class="bar hp"><i style="width:' + pct(f.hp, f.maxHp) + '%"></i></div></div>' +
+      '<div class="meter"><div class="meter-head"><span>흐트러짐 게이지</span><b>' + f.stagger + ' / ' + f.maxStagger + '</b></div>' +
+      '<div class="bar stg"><i style="width:' + pct(f.stagger, f.maxStagger) + '%"></i></div></div>' +
+      '<div>' + pips(f) + '</div>' +
+      '<div class="chips">' + chips.join('') + '</div></div>';
+  }
+
+  function skillTag(sk, who) {
+    if (!sk) return who + ': <b>행동 불가</b>';
+    return who + ': <b>' + esc(sk.name) + '</b>' + (sk.stars ? ' ' + '★'.repeat(sk.stars) : '');
+  }
+
+  function reportHtml(r) {
+    if (!r) return '<h3>라운드 결과</h3><p class="muted">스킬을 골라 첫 라운드를 시작하자.</p>';
+    let h = '<h3>라운드 ' + r.round + ' 결과</h3>' +
+      '<div class="picks"><span>' + skillTag(r.pSkill, '나') + '</span><span>' + skillTag(r.eSkill, '상대') + '</span></div>' +
+      '<ul class="clashes">' + r.clashes.map(function (c) { return '<li class="' + esc(c.kind) + '">' + esc(c.text) + '</li>'; }).join('') + '</ul>';
+    if (r.events.length) h += '<ul class="events">' + r.events.map(function (e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>';
+    return h;
+  }
+
+  function skillButtons(b) {
+    const P = b.player;
+    return P.skills.map(function (id, i) {
+      const s = SKILLS[id];
+      const bonus = Battle.bonusFor(P, s);
+      const lo = s.power[0] + bonus, hi = s.power[1] + bonus;
+      const ok = Battle.canUse(b, P, id);
+      const meta = [];
+      meta.push('<span>' + typeLabel[s.type] + '</span>');
+      meta.push('<span>빛 ' + s.cost + '</span>');
+      meta.push('<span>위력 ' + lo + '~' + hi + (s.hits > 1 ? ' ×' + s.hits : '') + '</span>');
+      return '<button class="skill ' + s.type + '" type="button" data-action="skill" data-skill="' + id + '"' + (ok ? '' : ' disabled title="빛이 부족하다"') + '>' +
+        '<span class="top"><span class="nm">' + esc(s.name) + '</span><kbd>' + (i + 1) + '</kbd></span>' +
+        '<span class="stars" aria-label="별 ' + s.stars + '개">' + (s.stars ? '★'.repeat(s.stars) : '&nbsp;') + '</span>' +
+        '<span class="meta">' + meta.join('') + '</span>' +
+        '<span class="desc">' + esc(s.desc) + '</span></button>';
+    }).join('');
+  }
+
+  const OUTCOME = {
+    win: { cls: 'win', title: '승리', text: '상대를 쓰러뜨렸다.' },
+    defeat: { cls: '', title: '패배', text: '쓰러졌지만 목숨은 건졌다. (시험 전투)' },
+    retreat: { cls: '', title: '도주', text: '전투에서 빠져나왔다. 패배로 처리되지만 사망은 아니다.' },
+    death: { cls: 'death', title: '사망', text: '생명력이 0이 되었다. 이 인생은 여기서 끝난다. 새 캐릭터로 처음부터 시작한다.' },
+    draw: { cls: '', title: '무승부', text: '서로 쓰러졌다.' },
+  };
+
+  function renderBattle() {
+    const b = S.battle;
+    const E = S.setup.enemy;
+    const enemyInfo = DATA.ENEMIES[E];
+    const growIn = 3 - ((b.round - 1) % 3);
+    const capNote = b.player.maxLight >= Battle.LIGHT_CAP ? '빛 최대치 상한' : '다음 빛 최대치 증가까지 ' + growIn + '라운드';
+    let action;
+    if (b.over) {
+      const o = OUTCOME[b.outcome];
+      const buttons = b.outcome === 'death'
+        ? '<button class="btn primary" type="button" data-action="restart">새 캐릭터로 처음부터</button>'
+        : '<button class="btn primary" type="button" data-action="again">같은 조건으로 다시</button>' +
+          '<button class="btn" type="button" data-action="toSetup">설정으로</button>';
+      action = '<div class="result ' + o.cls + '" role="status"><div class="big">' + o.title + '</div><p>' + esc(o.text) + '</p><div class="row">' + buttons + '</div></div>';
+    } else if (b.player.staggered) {
+      action = '<div class="callout"><b>흐트러졌다</b><p>이번 라운드에는 행동할 수 없고, 받는 피해가 2배가 된다.</p>' +
+        '<div class="row"><button class="btn primary" type="button" data-action="skip">라운드 진행</button></div></div>';
+    } else {
+      action = '<div class="skills">' + skillButtons(b) + '</div>';
+    }
+    const log = S.log.slice(-60).reverse().map(function (l) {
+      return '<li' + (l.mark ? ' class="round-mark"' : '') + '>' + esc(l.t) + '</li>';
+    }).join('');
+
+    app.innerHTML =
+      '<section class="screen">' +
+      '<div class="topbar"><div class="round-badge">라운드 ' + b.round + '<small>' + esc(capNote) + '</small></div>' +
+      (b.over ? '' : '<button class="btn small danger" type="button" data-action="retreat">도주</button>') + '</div>' +
+      '<div class="arena">' + fighterPanel(b.player, 'player', '') +
+      '<div class="vs" aria-hidden="true">VS</div>' +
+      fighterPanel(b.enemy, 'enemy', enemyInfo.grade) + '</div>' +
+      '<div class="report" aria-live="polite">' + reportHtml(S.report) + '</div>' +
+      action +
+      '<details class="log"><summary>전투 기록</summary><ol>' + log + '</ol></details>' +
+      '</section>';
+    S.flash = { p: false, e: false };
+    S.focusTarget = b.over ? '.result .btn' : (b.player.staggered ? '[data-action="skip"]' : '.skill:not(:disabled)');
+  }
+
+  /* ---------- 흐름 ---------- */
+  function render() {
+    if (S.screen === 'birth') renderBirth();
+    else if (S.screen === 'setup') renderSetup();
+    else renderBattle();
+    if (S.focusTarget) {
+      const el = app.querySelector(S.focusTarget);
+      if (el && typeof el.focus === 'function') el.focus({ preventScroll: true });
+    }
+  }
+
+  function startBattle() {
+    const st = S.setup, birth = S.birth;
+    const weapon = DATA.WEAPONS[st.weapon];
+    const en = DATA.ENEMIES[st.enemy];
+    const pcfg = {
+      name: S.name || '이름 없음', maxHp: birth.maxHp, str: birth.stats.str, agi: birth.stats.agi,
+      wang: st.wang, tattoo: st.tattoo, shin: st.shin, skills: weapon.skills,
+    };
+    const ecfg = { name: en.name, maxHp: en.hp, str: en.str, agi: en.agi, wang: en.wang, shin: en.shin, skills: DATA.WEAPONS[en.weapon].skills };
+    S.battle = Battle.createBattle(pcfg, ecfg, { lethal: st.lethal });
+    S.report = null;
+    S.log = [{ t: pcfg.name + ' vs ' + ecfg.name + ' — 전투 시작', mark: true }];
+    S.screen = 'battle';
+    render();
+  }
+
+  function playRound(skillId) {
+    const b = S.battle;
+    if (b.over) return;
+    let r;
+    try { r = Battle.resolveRound(b, skillId); } catch (err) { return; }
+    S.report = r;
+    S.log.push({ t: '라운드 ' + r.round, mark: true });
+    r.clashes.forEach(function (c) { S.log.push({ t: c.text }); });
+    r.events.forEach(function (e) { S.log.push({ t: e }); });
+    S.flash.p = r.clashes.some(function (c) { return c.dmgToP > 0; });
+    S.flash.e = r.clashes.some(function (c) { return c.dmgToE > 0; });
+    render();
+  }
+
+  function resetAll() {
+    S.screen = 'birth'; S.birth = null; S.battle = null; S.report = null; S.log = [];
+    render();
+  }
+
+  const actions = {
+    reroll: function () { S.birth = Birth.rollBirth(); render(); },
+    toSetup: function () { S.screen = 'setup'; render(); },
+    toBirth: function () { S.screen = 'birth'; render(); },
+    home: function () { resetAll(); },
+    restart: function () { resetAll(); },
+    pickWeapon: function (el) { S.setup.weapon = el.dataset.id; render(); },
+    pickEnemy: function (el) { S.setup.enemy = Number(el.dataset.idx); render(); },
+    pickMode: function (el) { S.setup.lethal = el.dataset.lethal === '1'; render(); },
+    start: startBattle,
+    again: startBattle,
+    skill: function (el) { playRound(el.dataset.skill); },
+    skip: function () { playRound(null); },
+    retreat: function () {
+      Battle.retreat(S.battle);
+      S.log.push({ t: '도주했다.', mark: true });
+      render();
+    },
+  };
+
+  document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-action]');
+    if (!el || el.disabled) return;
+    const fn = actions[el.dataset.action];
+    if (fn) fn(el);
+  });
+
+  document.addEventListener('submit', function (e) {
+    if (e.target.dataset.form === 'roll') {
+      e.preventDefault();
+      const input = document.getElementById('name');
+      S.name = input ? input.value.trim() : S.name;
+      S.birth = Birth.rollBirth();
+      render();
+    }
+  });
+
+  document.addEventListener('input', function (e) {
+    const t = e.target;
+    if (t.id === 'name') S.name = t.value.trim();
+  });
+
+  document.addEventListener('change', function (e) {
+    const t = e.target, f = t.dataset && t.dataset.field;
+    if (!f) return;
+    if (f === 'shin') S.setup.shin = t.checked;
+    else if (f === 'wang') { S.setup.wang = Math.max(0, Math.min(7, parseInt(t.value, 10) || 0)); t.value = S.setup.wang; }
+    else if (f === 'tattoo') { S.setup.tattoo = Math.max(0, Math.min(50, parseInt(t.value, 10) || 0)); t.value = S.setup.tattoo; }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (S.screen !== 'battle' || !S.battle || S.battle.over) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const n = parseInt(e.key, 10);
+    if (!n) return;
+    const id = S.battle.player.skills[n - 1];
+    if (id && Battle.canUse(S.battle, S.battle.player, id)) { e.preventDefault(); playRound(id); }
+  });
+
+  render();
+})();
+
+</script>
+</body>
+</html>
