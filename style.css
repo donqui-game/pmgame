@@ -229,3 +229,52 @@ details.test summary { cursor: pointer; color: var(--muted); }
   .fighter.hit, .stun { animation: none; }
   .bar > i { transition: none; }
 }
+
+/* ================= 전체 게임 UI ================= */
+.status { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; }
+.status-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; }
+.status-top .who { font-weight: 700; font-size: 18px; }
+.status-top .who small { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: 13px; }
+.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 8px; }
+.ap { display: flex; gap: 5px; align-items: center; }
+.ap i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #6b6f7c; display: inline-block; }
+.ap i.on { background: var(--accent); border-color: var(--accent); }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { cursor: pointer; padding: 8px 14px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); }
+.tab[aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: #1f1c13; }
+.panel { display: grid; gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 8px; }
+.card.hard { border-left: 3px solid var(--hp); }
+.card.good { border-left: 3px solid var(--good); }
+.card.warn { border-left: 3px solid var(--hyeol); }
+.card h3 { font-size: 16px; }
+.card .sub { color: var(--muted); font-size: 13px; }
+.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--line); color: #cfccc3; background: var(--bg-2); margin-right: 4px; }
+.tag.hard { color: #f0a79f; border-color: #5a2a26; }
+.tag.good { color: #9bd6b0; border-color: #2f5a41; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.notice { background: var(--panel-2); border: 1px solid var(--line); border-top: 3px solid var(--tone, var(--accent)); border-radius: var(--radius); padding: 14px; display: grid; gap: 8px; }
+.notice.good { --tone: var(--good); }
+.notice.bad { --tone: var(--hp); }
+.notice h3 { font-size: 17px; }
+.notice li { color: #d6d2c8; }
+.progress { height: 8px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--accent); }
+.thirst > i { background: linear-gradient(90deg, #a53a3f, var(--hyeol)); }
+table.rank { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.rank td, table.rank th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+table.rank tr.cur td { color: var(--accent); font-weight: 700; }
+table.rank tr.done td { color: var(--muted); }
+.qchoice { text-align: left; cursor: pointer; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
+.qchoice:hover:not(:disabled) { border-color: #444958; }
+.qchoice:disabled { opacity: .45; cursor: not-allowed; }
+.slot { cursor: pointer; text-align: left; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--kind, #555a68); border-radius: 10px; padding: 10px 12px; display: grid; gap: 3px; }
+.slot.attack { --kind: var(--hp); } .slot.defense { --kind: var(--stagger); } .slot.evade { --kind: var(--evade); }
+.slot[aria-pressed="true"] { background: #1f1c13; border-color: var(--accent); border-left-color: var(--kind); }
+.pt-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.alert { border: 1px solid #5d4a1c; background: #1f1a0e; color: #f0cf8a; border-radius: var(--radius); padding: 10px 14px; }
+.alert.red { border-color: #6a2a34; background: #22111a; color: #f0a0ae; }
+@media (max-width: 640px) { .status-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.logl { display: grid; gap: 6px; font-size: 14px; max-height: 420px; overflow: auto; }
+.logl li { padding-bottom: 6px; border-bottom: 1px solid var(--line); }
