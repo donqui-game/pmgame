@@ -1,4 +1,4 @@
-/* 전투 엔진: 빛, 별, 합, 방어/회피, 흐트러짐 (설계서 v0.4) */
+/* 전투 엔진: 빛, 별, 합, 방어/회피, 흐트러짐, 신·망 획득 (설계서 v0.4) */
 (function (root) {
   'use strict';
 
@@ -9,6 +9,8 @@
   const LIGHT_CAP = 9;        // 빛 최대치 상한
   const LIGHT_GROW_EVERY = 3; // 3라운드마다 최대치 +1
   const STAGGER_RATIO = 0.5;  // 흐트러짐 게이지 = 최대 생명력의 50% (임시)
+  const LUCK_CHANCE = 0.0001; // 매 합마다 0.01%로 신(心), 이미 있으면 망(望) 획득
+  const WANG_MAX = 7;
 
   function randInt(rng, lo, hi) {
     return lo + Math.floor(rng() * (hi - lo + 1));
@@ -18,11 +20,11 @@
     const maxStagger = Math.max(1, Math.round(cfg.maxHp * STAGGER_RATIO));
     return {
       name: cfg.name,
-      maxHp: cfg.maxHp, hp: cfg.maxHp,
+      maxHp: cfg.maxHp, hp: cfg.hp != null ? Math.max(1, Math.min(cfg.maxHp, cfg.hp)) : cfg.maxHp,
       maxStagger: maxStagger, stagger: maxStagger,
       maxLight: LIGHT_START, light: LIGHT_START,
-      str: cfg.str || 5, agi: cfg.agi || 5,
-      wang: Math.min(7, cfg.wang || 0),
+      str: Math.max(0, cfg.str != null ? cfg.str : 5), agi: Math.max(0, cfg.agi != null ? cfg.agi : 5),
+      wang: Math.min(WANG_MAX, cfg.wang || 0),
       shin: !!cfg.shin,
       tattoo: cfg.tattoo || 0,
       skills: cfg.skills.slice(),
@@ -37,6 +39,7 @@
       player: createFighter(playerCfg),
       enemy: createFighter(enemyCfg),
       lethal: opts.lethal !== false,
+      luck: opts.luck || Math.random,
       over: false,
       outcome: null, // win | defeat | death | draw | retreat
     };
@@ -71,15 +74,15 @@
     return f.light - before;
   }
 
-  // 피해 처리: 흐트러짐 중이면 x2, 신이 있으면 x0.9, 반올림 (최소 1)
-  function applyDamage(target, raw) {
+  // 피해 처리: 흐트러짐 중이면 x2, 신이 있으면 x0.9, 반올림 (최소 1). sm은 흐트러짐 게이지 추가 배수
+  function applyDamage(target, raw, sm) {
     if (raw <= 0) return 0;
     let v = raw;
     if (target.staggered) v *= 2;
     if (target.shin) v *= 0.9;
     v = Math.max(1, Math.round(v));
     target.hp = Math.max(0, target.hp - v);
-    target.stagger = Math.max(0, target.stagger - v);
+    target.stagger = Math.max(0, target.stagger - Math.round(v * (sm || 1)));
     return v;
   }
 
@@ -98,7 +101,7 @@
     // 상대에게 주사위가 없는 경우 (흐트러짐 또는 남는 타수)
     if (pd && !ed) {
       if (pAtk) {
-        rec.dmgToE = applyDamage(E, pd.total);
+        rec.dmgToE = applyDamage(E, pd.total, ps.staggerMult);
         rec.kind = 'unopposed';
         rec.text = label(P, ps, pd) + ' 막을 수단 없이 적중 → ' + E.name + ' ' + rec.dmgToE + ' 피해';
       } else { rec.kind = 'idle'; rec.text = label(P, ps, pd) + ' 상대가 움직이지 않았다.'; }
@@ -106,7 +109,7 @@
     }
     if (!pd && ed) {
       if (eAtk) {
-        rec.dmgToP = applyDamage(P, ed.total);
+        rec.dmgToP = applyDamage(P, ed.total, es.staggerMult);
         rec.kind = 'unopposed';
         rec.text = label(E, es, ed) + ' 막을 수단 없이 적중 → ' + P.name + ' ' + rec.dmgToP + ' 피해';
       } else { rec.kind = 'idle'; rec.text = label(E, es, ed) + ' 상대가 움직이지 않았다.'; }
@@ -124,10 +127,10 @@
         if (pt && !et) winner = 1; else if (et && !pt) winner = -1;
       }
       if (winner === 1) {
-        rec.dmgToE = applyDamage(E, pd.total); rec.kind = 'win';
+        rec.dmgToE = applyDamage(E, pd.total, ps.staggerMult); rec.kind = 'win';
         rec.text = head + P.name + ' 승리, ' + E.name + ' ' + rec.dmgToE + ' 피해';
       } else if (winner === -1) {
-        rec.dmgToP = applyDamage(P, ed.total); rec.kind = 'lose';
+        rec.dmgToP = applyDamage(P, ed.total, es.staggerMult); rec.kind = 'lose';
         rec.text = head + E.name + ' 승리, ' + P.name + ' ' + rec.dmgToP + ' 피해';
       } else { rec.kind = 'tie'; rec.text = head + '동점, 서로 상쇄'; }
       return rec;
@@ -135,7 +138,7 @@
 
     if (pAtk || eAtk) {
       const aSide = pAtk ? 'p' : 'e';
-      const A = pAtk ? P : E, D = pAtk ? E : P;
+      const D = pAtk ? E : P;
       const as = pAtk ? ps : es, ds = pAtk ? es : ps;
       const ad = pAtk ? pd : ed, dd = pAtk ? ed : pd;
       let dmg = 0, kind = '', tail = '';
@@ -162,7 +165,7 @@
           tail = D.name + ' 회피 실패';
         }
       }
-      const dealt = dmg > 0 ? applyDamage(D, dmg) : 0;
+      const dealt = dmg > 0 ? applyDamage(D, dmg, as.staggerMult) : 0;
       if (dealt > 0) tail += ' → ' + D.name + ' ' + dealt + ' 피해';
       if (aSide === 'p') rec.dmgToE = dealt; else rec.dmgToP = dealt;
       rec.kind = kind;
@@ -224,6 +227,11 @@
       const pd = ps && i < ps.hits ? rollDie(P, ps, rng) : null;
       const ed = es && i < es.hits ? rollDie(E, es, rng) : null;
       report.clashes.push(clash(P, ps, pd, E, es, ed));
+      // 플레이어는 매 합마다 0.01% 확률로 신(心)을 얻고, 이미 있으면 망(望)을 얻는다
+      if (pd && state.luck() < LUCK_CHANCE) {
+        if (!P.shin) { P.shin = true; report.events.push(P.name + '이(가) 신(心)을 얻었다! 받는 피해가 10% 줄어든다'); }
+        else if (P.wang < WANG_MAX) { P.wang += 1; report.events.push(P.name + '이(가) 망(望)을 얻었다! 합 위력 +3 (현재 ' + P.wang + '망)'); }
+      }
       if (P.hp <= 0 || E.hp <= 0) break;
     }
 
@@ -260,7 +268,7 @@
   }
 
   const api = {
-    LIGHT_START: LIGHT_START, LIGHT_CAP: LIGHT_CAP,
+    LIGHT_START: LIGHT_START, LIGHT_CAP: LIGHT_CAP, WANG_MAX: WANG_MAX,
     createBattle: createBattle, resolveRound: resolveRound, retreat: retreat,
     canUse: canUse, bonusFor: bonusFor,
     _t: { clash: clash, applyDamage: applyDamage, rollDie: rollDie, beginRound: beginRound, createFighter: createFighter, chooseEnemySkill: chooseEnemySkill },
