@@ -55,7 +55,7 @@
       body = '<article class="birth-card ' + b.type + '"><div class="row"><span class="badge">' + esc(b.typeName) + (b.grade ? ' · ' + b.grade + '등급' : '') + '</span>' +
         (b.zoneName ? '<span class="badge">' + esc(b.zoneName) + '</span>' : '') + '</div>' +
         '<h2 class="birth-title">' + esc(S.name || '이름 없음') + ', ' + esc(birthTitle(b)) + '</h2><p class="birth-story">' + esc(b.story) + '</p>' +
-        '<div class="stat-grid">' + stat('생명력', b.maxHp) + stat('안', b.an) + stat('힘', b.stats.str) + stat('체질', b.stats.con) + stat('민첩', b.stats.agi) + stat('연줄', conn) + '</div>' +
+        '<div class="stat-grid">' + stat('생명력', b.maxHp) + stat('안', W.fa(b.an)) + stat('힘', b.stats.str) + stat('체질', b.stats.con) + stat('민첩', b.stats.agi) + stat('연줄', conn) + '</div>' +
         (b.type === 'hyeolgwi' ? '<p class="note">혈귀는 능력치가 높지만 혈기(갈증)가 쌓인다. 혈액팩을 사거나 사람의 피를 뽑아 달래야 한다.</p>' : '') +
         '</article><div class="row"><button class="btn primary" type="button" data-action="beginLife">이 인생을 살아간다 →</button></div>';
     }
@@ -118,7 +118,7 @@
     return '<div class="status"><div class="status-top"><div class="who">' + esc(G.name) + '<small>' + esc(c.name) + ' · ' + esc(W.rankName(G)) + '</small></div>' +
       '<div class="ap" aria-label="행동력 ' + G.ap + '">' + G.day + '일차 &nbsp;' + ap + '</div></div>' +
       '<div class="meter"><div class="meter-head"><span>생명력</span><b>' + G.hp + ' / ' + hp + '</b></div><div class="bar hp"><i style="width:' + pct(G.hp, hp) + '%"></i></div></div>' +
-      '<div class="status-grid">' + stat('안', G.an) + stat('평판', G.rep) + stat('환산 등급', W.gradeName(g)) +
+      '<div class="status-grid">' + stat('안 (≈' + (G.an * 10).toLocaleString('ko-KR') + '원)', Number(G.an).toLocaleString('ko-KR')) + stat('평판', G.rep) + stat('환산 등급', W.gradeName(g)) +
       stat('힘 / 체질 / 민첩', W.effStat(G, 'str') + ' / ' + G.stats.con + ' / ' + W.effStat(G, 'agi')) + stat('악명', G.infamy) + thirst + '</div></div>';
   }
 
@@ -126,7 +126,7 @@
     let h = '';
     if (G.directive) {
       const d = G.directive;
-      h += '<div class="card good"><h3>오늘의 지령 <span class="tag good">' + W.directiveProgress(G) + ' / ' + d.target + '</span></h3><p>' + esc(d.desc) + '</p><p class="sub">완수 시 안 +' + d.an + ', 평판 +' + d.rep + ' · 실패 시 평판 −' + Math.round(d.rep / 2) + '</p></div>';
+      h += '<div class="card good"><h3>오늘의 지령 <span class="tag good">' + W.directiveProgress(G) + ' / ' + d.target + '</span></h3><p>' + esc(d.desc) + '</p><p class="sub">완수 시 ' + W.fa(d.an) + ', 평판 +' + d.rep + ' · 실패 시 평판 −' + Math.round(d.rep / 2) + '</p></div>';
     }
     h += '<p class="sub">의뢰는 환산 등급(' + W.gradeName(W.grade(G)) + ')에 맞춰 배정된다. 한 번 선택하면 행동력 1을 쓴다.</p>';
     if (!G.quests.length) h += '<div class="card"><p>오늘 받을 수 있는 의뢰가 더 없다. 하루를 마치자.</p></div>';
@@ -134,7 +134,7 @@
       const t = W.tplOf(q.tpl), rew = W.questReward(G, q, 1);
       const open = S.openQuest === q.uid;
       h += '<div class="card' + (q.hard ? ' hard' : '') + '"><h3>' + esc(t.title) + ' <span class="tag' + (q.hard ? ' hard' : '') + '">' + W.gradeName(q.grade) + (q.hard ? ' · 한 단계 위' : '') + '</span></h3>' +
-        '<p class="sub">' + esc(t.intro) + '</p><p class="sub">기준 보상 안 ' + rew.an + ' · 평판 ' + rew.rep + '</p>';
+        '<p class="sub">' + esc(t.intro) + '</p><p class="sub">기준 보상 ' + W.fa(rew.an) + ' · 평판 약 ' + rew.rep + '</p>';
       if (open) {
         h += t.choices.map(function (ch, i) {
           let how;
@@ -156,7 +156,7 @@
       const cur = c.ranks[idx].rep;
       h += '<p class="sub">다음 계급: ' + esc(nx.name) + ' (평판 ' + nx.rep + ') · 현재 평판 ' + G.rep + '</p>' +
         '<div class="progress"><i style="width:' + pct(G.rep - cur, Math.max(1, nx.rep - cur)) + '%"></i></div>' +
-        '<p class="sub">승급 시험은 비치명 1대1 전투이며 응시료는 ' + W.examFee(G) + '안이다. 상대는 ' + W.gradeName(W.equivGrade(nx.rep)) + ' 수준이다.</p>';
+        '<p class="sub">승급 시험은 비치명 1대1 전투이며 응시료는 ' + W.fa(W.examFee(G)) + '이다. 상대는 ' + W.gradeName(W.equivGrade(nx.rep)) + ' 수준이다.</p>';
       const can = W.canExam(G);
       h += '<div class="row"><button class="btn primary" type="button" data-action="exam"' + (can.ok ? '' : ' disabled') + '>승급 시험 응시</button>' + (can.ok ? '' : '<span class="sub">' + esc(can.reason) + '</span>') + '</div>';
     } else h += '<p>최고 계급에 올랐다.</p>';
@@ -170,21 +170,21 @@
   }
 
   function shopTab(G) {
-    let h = '<div class="card"><h3>치료</h3><p class="sub">생명력 1당 ' + (W.healCost(G, 10) / 10).toFixed(1) + '안</p><div class="row">';
+    let h = '<div class="card"><h3>치료</h3><p class="sub">생명력 1당 ' + W.fa(W.healCost(G, 10) / 10) + '</p><div class="row">';
     const miss = W.maxHp(G) - G.hp;
     [10, 25, miss].forEach(function (n, i) {
       const amt = Math.min(n, miss);
-      h += '<button class="btn small" type="button" data-action="heal" data-n="' + amt + '"' + (amt <= 0 ? ' disabled' : '') + '>' + (i === 2 ? '전부' : '+' + n) + ' (' + (amt > 0 ? W.healCost(G, amt) : 0) + '안)</button>';
+      h += '<button class="btn small" type="button" data-action="heal" data-n="' + amt + '"' + (amt <= 0 ? ' disabled' : '') + '>' + (i === 2 ? '전부' : '+' + n) + ' (' + W.fa(amt > 0 ? W.healCost(G, amt) : 0) + ')</button>';
     });
     h += '</div></div><div class="card"><h3>무기</h3><div class="grid2">';
     Object.keys(WEAPONS).forEach(function (id) {
       const w = WEAPONS[id], own = G.weapons.indexOf(id) >= 0;
       h += '<div class="card"><b>' + esc(w.name) + '</b><p class="sub">' + esc(w.desc) + '</p><span class="mini-skills">' + w.skills.map(function (k) { return '<span>' + esc(SKILLS[k].name) + '</span>'; }).join('') + '</span>' +
-        (own ? '<span class="tag good">보유</span>' : '<button class="btn small" type="button" data-action="buy" data-id="' + id + '"' + (G.an < w.price ? ' disabled' : '') + '>' + w.price + '안에 구입</button>') + '</div>';
+        (own ? '<span class="tag good">보유</span>' : '<button class="btn small" type="button" data-action="buy" data-id="' + id + '"' + (G.an < w.price ? ' disabled' : '') + '>' + W.fa(w.price) + '에 구입</button>') + '</div>';
     });
     h += '</div></div>';
     if (W.isHyeolgwi(G)) {
-      h += '<div class="card"><h3>혈액팩</h3><p class="sub">' + C.BLOOD_PACK_PRICE + '안 · 혈기 −' + C.BLOOD_PACK_EFFECT + ' · 보유 ' + G.bloodPacks + '</p><div class="row">' +
+      h += '<div class="card"><h3>혈액팩</h3><p class="sub">' + W.fa(C.BLOOD_PACK_PRICE) + ' · 혈기 −' + C.BLOOD_PACK_EFFECT + ' · 보유 ' + G.bloodPacks + '</p><div class="row">' +
         '<button class="btn small" type="button" data-action="buyPack"' + (G.an < C.BLOOD_PACK_PRICE ? ' disabled' : '') + '>구입</button>' +
         '<button class="btn small" type="button" data-action="usePack"' + (G.bloodPacks < 1 ? ' disabled' : '') + '>사용</button></div></div>';
     }
@@ -212,7 +212,7 @@
     const c = W.career(G);
     let h = '<div class="card"><h3>' + esc(c.name) + '</h3><p class="sub">' + esc(c.desc) + '</p></div>';
     if (G.career.school) h += '<div class="card"><h3>화풍: ' + esc(SCHOOLS[G.career.school].name) + '</h3><p class="sub">' + esc(SCHOOLS[G.career.school].desc) + '</p></div>';
-    if (c.kind === 'corp') h += '<div class="card"><h3>급여</h3><p>하루 ' + c.wage[G.career.rankIdx] + '안이 지급된다.</p></div>';
+    if (c.kind === 'corp') h += '<div class="card"><h3>급여</h3><p>하루 ' + W.fa(c.wage[G.career.rankIdx]) + '이 지급된다.</p></div>';
     if (G.career.id === 'pinky') {
       h += '<div class="card"><h3>수련장</h3><p class="sub">행동력 1을 쓰고 능력치를 1 올릴 기회를 얻는다. (소지 전용)</p><div class="row">' +
         W.STATS.map(function (s) { return '<button class="btn small" type="button" data-action="train" data-stat="' + s + '"' + (G.ap < 1 ? ' disabled' : '') + '>' + SN[s] + ' ' + G.stats[s] + ' · ' + Math.round(W.trainChance(G, s) * 100) + '%</button>'; }).join('') + '</div></div>';
@@ -433,7 +433,7 @@
       S.openQuest = null;
       if (res.fight) { launch(res.fight); return; }
       if (!res.ok) setNotice(res.reason, [], 'bad');
-      else setNotice(res.success ? '의뢰 성공' : '의뢰 실패', [res.text].concat(res.reward ? ['안 +' + res.reward.an + ', 평판 +' + res.reward.rep] : []), res.success ? 'good' : 'bad');
+      else setNotice(res.success ? '의뢰 성공' : '의뢰 실패', [res.text].concat(res.reward ? ['+' + W.fa(res.reward.an) + ', 평판 +' + res.reward.rep] : []), res.success ? 'good' : 'bad');
       commit(); render();
     },
     exam: function () { const r = W.startExam(S.G); if (r.fight) { launch(r.fight); return; } say(r); render(); },
@@ -449,7 +449,7 @@
     buy: function (el) { say(W.buyWeapon(S.G, el.dataset.id), '구입했다'); commit(); render(); },
     equip: function (el) { W.equipWeapon(S.G, el.dataset.id); commit(); render(); },
     slot: function (el) { if (!W.toggleSlot(S.G, el.dataset.id)) setNotice('바꿀 수 없다', ['슬롯은 최대 ' + W.MAX_SLOTS + '개이고 공격 스킬이 최소 하나는 있어야 한다.'], 'bad'); commit(); render(); },
-    heal: function (el) { const r = W.heal(S.G, Number(el.dataset.n)); if (r.ok) setNotice('치료를 받았다', ['생명력 +' + r.healed + ' (−' + r.cost + '안)'], 'good'); else say(r); commit(); render(); },
+    heal: function (el) { const r = W.heal(S.G, Number(el.dataset.n)); if (r.ok) setNotice('치료를 받았다', ['생명력 +' + r.healed + ' (−' + W.fa(r.cost) + ')'], 'good'); else say(r); commit(); render(); },
     train: function (el) {
       const r = W.trainStat(S.G, el.dataset.stat);
       if (!r.ok) say(r); else setNotice(r.success ? '훈련 성공' : '훈련했지만 오르지 않았다', r.success ? [SN[el.dataset.stat] + ' +1'] : ['감만 잡았다.'], r.success ? 'good' : '');
