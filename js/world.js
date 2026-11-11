@@ -15,6 +15,7 @@
   const LEDGER_MAX = 10;
 
   /* ---------- 유틸 ---------- */
+  function fa(n) { return Number(n).toLocaleString('ko-KR') + '안'; }
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
   function pickOne(arr, rng) { return arr[Math.floor(rng() * arr.length)]; }
   function shuffle(arr, rng) {
@@ -36,22 +37,11 @@
   }
   function gradeName(g) { return g === 0 ? '특색' : g + '급'; }
 
-  // 해당 등급 의뢰의 평판 보상: (다음 등급 기준 - 이 등급 기준) / 30, 단 낮은 등급보다 적어지지 않게 한다
-  const _repRewardCache = {};
-  function repReward(g) {
-    if (_repRewardCache[g] != null) return _repRewardCache[g];
-    let v;
-    if (g === 0) v = 1500;
-    else {
-      const list = DATA.FIXER_GRADES;
-      let idx = 0;
-      list.forEach(function (f, i) { if (f.grade === g) idx = i; });
-      v = Math.round((list[idx + 1].rep - list[idx].rep) / C.QUESTS_PER_RANK);
-      if (g < 9) v = Math.max(v, repReward(g + 1));
-    }
-    _repRewardCache[g] = v;
-    return v;
-  }
+  // 등급별 의뢰 평판 보상: 기준값과 ± 편차
+  const REP_BASE = { 9: 50, 8: 120, 7: 250, 6: 530, 5: 750, 4: 1050, 3: 1250, 2: 1470, 1: 1950, 0: 2250 };
+  const REP_VAR = { 9: 20, 8: 20, 7: 20, 6: 20, 5: 20, 4: 150, 3: 150, 2: 150, 1: 250, 0: 250 };
+  function repReward(g) { return REP_BASE[g]; }
+  function rollRep(g, rng) { return REP_BASE[g] + Math.round((rng() * 2 - 1) * REP_VAR[g]); }
 
   /* ---------- 상태 ---------- */
   function totalConn(G) { return CONN_TYPES.reduce(function (s, k) { return s + (G.conn[k] || 0); }, 0); }
@@ -70,7 +60,7 @@
   function career(G) { return G.career ? CAREERS[G.career.id] : null; }
   function rankName(G) { const c = career(G); return c ? c.ranks[G.career.rankIdx].name : '무직'; }
   function nextRank(G) { const c = career(G); if (!c) return null; return c.ranks[G.career.rankIdx + 1] || null; }
-  function examFee(G) { const n = nextRank(G); return n ? Math.max(1, Math.round(n.rep * C.EXAM_FEE_RATIO)) : 0; }
+  function examFee(G) { const n = nextRank(G); return n ? Math.max(1, Math.round(n.rep * C.EXAM_FEE_RATIO * C.AN_SCALE)) : 0; }
   function questBonus(G) {
     if (!G.career) return 1;
     return G.career.id === 'fixer' ? 1 + C.BONUS_FIXER : G.career.id === 'thumb' ? 1 + C.BONUS_THUMB : 1;
@@ -106,10 +96,10 @@
     const out = [];
     const g = grade(G);
     STATS.forEach(function (s) { if (eff[s]) { addStat(G, s, eff[s]); out.push(STAT_NAMES[s] + ' +' + eff[s]); } });
-    if (eff.an) { G.an = Math.max(0, G.an + eff.an); out.push('안 ' + (eff.an > 0 ? '+' : '') + eff.an); }
+    if (eff.an) { const v = eff.an * C.AN_SCALE; G.an = Math.max(0, G.an + v); out.push('안 ' + (v > 0 ? '+' : '') + v.toLocaleString('ko-KR')); }
     if (eff.anMul) {
       const v = Math.round(eff.anMul * GR.an[g]);
-      G.an = Math.max(0, G.an + v); out.push('안 ' + (v >= 0 ? '+' : '') + v);
+      G.an = Math.max(0, G.an + v); out.push('안 ' + (v >= 0 ? '+' : '') + v.toLocaleString('ko-KR'));
     }
     if (eff.repMul) {
       const v = Math.round(eff.repMul * repReward(g));
@@ -221,12 +211,12 @@
   }
   function enemyNameGroup(g) { return g >= 7 ? 'A' : g >= 4 ? 'B' : g >= 1 ? 'C' : 'D'; }
   function makeEnemy(g, rng, name) {
-    const wp = g >= 7 ? ['fist', 'dagger'] : g >= 4 ? ['dagger', 'sword', 'blunt'] : ['sword', 'spear', 'axe', 'blunt'];
+    const wp = g >= 7 ? ['fist', 'dagger'] : g >= 5 ? ['dagger', 'sword', 'blunt'] : g >= 4 ? ['sword', 'blunt', 'katana'] : g >= 2 ? ['spear', 'axe', 'katana', 'pistol', 'shotgun'] : ['katana', 'pistol', 'shotgun', 'rifle', 'axe'];
     const w = WEAPONS[pickOne(wp, rng)];
     const names = EV.ENEMY_NAMES[enemyNameGroup(g)];
     return {
       name: name || pickOne(names, rng), maxHp: GR.enemyHp[g],
-      str: g === 0 ? 25 : 3 + (9 - g) * 2, agi: g === 0 ? 20 : Math.round(5 + (9 - g) * 1.5),
+      str: g === 0 ? 26 : 3 + Math.round((9 - g) * 1.7), agi: g === 0 ? 20 : Math.round(5 + (9 - g) * 1.5),
       wang: GR.enemyWang[g], skills: w.skills.filter(function (id) { return g < 8 || SKILLS[id].type === 'attack'; }), weaponName: w.name, grade: g,
     };
   }
@@ -247,7 +237,7 @@
     let target, desc;
     if (t === 'quests') { target = 2 + Math.floor(rng() * 2); desc = '오늘 의뢰 ' + target + '건 완수'; }
     else if (t === 'wins') { target = 1 + Math.floor(rng() * 2); desc = '오늘 전투 ' + target + '회 승리'; }
-    else { target = GR.an[g] * 2; desc = '오늘 의뢰로 ' + target + ' 안 벌기'; }
+    else { target = GR.an[g] * 2; desc = '오늘 의뢰로 ' + fa(target) + ' 벌기'; }
     return { type: t, target: target, desc: desc, an: GR.an[g], rep: Math.round(repReward(g) * 1.5) };
   }
   function directiveProgress(G) {
@@ -262,7 +252,8 @@
     const hardIdx = rng() < 0.35 ? Math.floor(rng() * 3) : -1;
     return tpls.map(function (id, i) {
       const hard = i === hardIdx && g > 0;
-      return { uid: G.uid++, tpl: id, grade: hard ? g - 1 : g, hard: hard };
+      const qg = hard ? g - 1 : g;
+      return { uid: G.uid++, tpl: id, grade: qg, hard: hard, rep: rollRep(qg, rng) };
     });
   }
   function tplOf(id) { return EV.QUESTS.filter(function (q) { return q.id === id; })[0]; }
@@ -273,13 +264,13 @@
   function questReward(G, q, mul, extra) {
     return {
       an: Math.round(GR.an[q.grade] * mul * (extra || 1) * questBonus(G)),
-      rep: Math.round(repReward(q.grade) * mul),
+      rep: Math.round((q.rep != null ? q.rep : repReward(q.grade)) * mul),
     };
   }
   function questDone(G, q, rew) {
     G.an += rew.an; G.rep += rew.rep;
     G.counters.quests++; G.dayStats.quests++; G.dayStats.earned += rew.an;
-    if (G.counters.quests % 8 === 0) { G.pendingPoints++; log(G, '경험이 쌓여 능력치 포인트 +1'); }
+    if (G.counters.quests % 2 === 0) { G.pendingPoints++; log(G, '경험이 쌓여 능력치 포인트 +1'); }
   }
   function spendAP(G, n) { if (G.ap < n) return false; G.ap -= n; return true; }
   function removeQuest(G, uid) { G.quests = G.quests.filter(function (x) { return x.uid !== uid; }); }
@@ -298,13 +289,13 @@
     removeQuest(G, uid);
     if (ch.kind === 'safe') {
       const rew = questReward(G, q, ch.mul); questDone(G, q, rew);
-      log(G, tpl.title + ' 완수 (+' + rew.an + '안, 평판 +' + rew.rep + ')');
+      log(G, tpl.title + ' 완수 (+' + fa(rew.an) + ', 평판 +' + rew.rep + ')');
       return { ok: true, success: true, text: '무사히 마쳤다.', reward: rew };
     }
     const p = questChance(G, q, ch);
     if (rng() < p) {
       const rew = questReward(G, q, ch.mul); questDone(G, q, rew);
-      log(G, tpl.title + ' 성공 (+' + rew.an + '안, 평판 +' + rew.rep + ')');
+      log(G, tpl.title + ' 성공 (+' + fa(rew.an) + ', 평판 +' + rew.rep + ')');
       return { ok: true, success: true, text: '판단이 맞았다. 의뢰를 깔끔하게 마쳤다.', reward: rew, chance: p };
     }
     const loss = Math.ceil(maxHp(G) * 0.12);
@@ -319,7 +310,7 @@
     if (!n) return { ok: false, reason: '최고 계급이다' };
     if (G.rep < n.rep) return { ok: false, reason: '평판 ' + n.rep + ' 필요' };
     if (G.ap < 1) return { ok: false, reason: '행동력이 없다' };
-    if (G.an < examFee(G)) return { ok: false, reason: '응시료 ' + examFee(G) + '안 필요' };
+    if (G.an < examFee(G)) return { ok: false, reason: '응시료 ' + fa(examFee(G)) + ' 필요' };
     return { ok: true };
   }
   function startExam(G) {
@@ -382,7 +373,7 @@
     G.weapon = id; setDefaultSlots(G); return true;
   }
   function healCostPerHp(G) { return 0.4 + (9 - grade(G)) * 0.1; }
-  function healCost(G, hp) { return Math.ceil(hp * healCostPerHp(G)); }
+  function healCost(G, hp) { return Math.ceil(hp * healCostPerHp(G) * C.AN_SCALE / 10) * 10; }
   function heal(G, hpAmount) {
     const missing = maxHp(G) - G.hp;
     const n = Math.min(hpAmount, missing);
@@ -434,7 +425,7 @@
       const d = G.directive;
       if (directiveProgress(G) >= d.target) {
         G.an += d.an; G.rep += d.rep;
-        lines.push('지령 완수: ' + d.desc + ' (안 +' + d.an + ', 평판 +' + d.rep + ')');
+        lines.push('지령 완수: ' + d.desc + ' (+' + fa(d.an) + ', 평판 +' + d.rep + ')');
       } else {
         const floor = career(G).ranks[G.career.rankIdx].rep;
         const loss = Math.min(Math.round(d.rep / 2), Math.max(0, G.rep - floor));
@@ -445,7 +436,7 @@
 
     // 생활비·급여
     const living = GR.living[g];
-    if (G.an >= living) { G.an -= living; lines.push('생활비 ' + living + '안'); }
+    if (G.an >= living) { G.an -= living; lines.push('생활비 ' + fa(living)); }
     else {
       const hurt = Math.ceil(maxHp(G) * 0.1);
       G.an = 0; G.hp = Math.max(1, G.hp - hurt);
@@ -453,7 +444,7 @@
     }
     if (G.career && career(G).kind === 'corp') {
       const w = career(G).wage[G.career.rankIdx];
-      G.an += w; lines.push('급여 +' + w + '안');
+      G.an += w; lines.push('급여 +' + fa(w));
     }
 
     // 회복
@@ -495,7 +486,7 @@
     if (G.career && G.career.id === 'thumb' && ctx.kind === 'quest') {
       const base = Math.round(GR.an[ctx.grade] * ctx.mul * questBonus(G));
       const t = Math.min(G.an, Math.round(base * C.TRIBUTE_RATIO));
-      G.an -= t; lines.push('상납금 ' + t + '안을 바쳤다.');
+      G.an -= t; lines.push('상납금 ' + fa(t) + '을 바쳤다.');
     }
     if (G.career && G.career.id === 'middle' && ctx.kind !== 'ledger') {
       addLedger(G, ctx.enemy);
@@ -548,8 +539,8 @@
         removeQuest(G, ctx.uid);
         const rew = questReward(G, ctx.quest, ctx.mul, 1.2);
         questDone(G, ctx.quest, rew);
-        lines.push('의뢰 완수. 안 +' + rew.an + ', 평판 +' + rew.rep + ' (전리품 포함)');
-        log(G, ctx.label + ' 승리 (+' + rew.an + '안)');
+        lines.push('의뢰 완수. +' + fa(rew.an) + ', 평판 +' + rew.rep + ' (전리품 포함)');
+        log(G, ctx.label + ' 승리 (+' + fa(rew.an) + ')');
       } else if (ctx.kind === 'exam') {
         applyPromotion(G, lines);
       } else if (ctx.kind === 'corpExam') {
@@ -583,7 +574,7 @@
     } else if (ctx.kind === 'encounter') {
       const fine = Math.round(G.an * 0.25);
       G.an -= fine; G.infamy += 3;
-      lines.push('벌금으로 ' + fine + '안을 뜯겼다. 악명 +3');
+      lines.push('벌금으로 ' + fa(fine) + '을 뜯겼다. 악명 +3');
     }
     lossPenalty(G, ctx, lines);
     log(G, ctx.label + ' — ' + title);
@@ -622,7 +613,7 @@
 
   const api = {
     STATS: STATS, STAT_NAMES: STAT_NAMES, CONN_TYPES: CONN_TYPES, MAX_SLOTS: MAX_SLOTS,
-    equivGrade: equivGrade, gradeName: gradeName, repReward: repReward,
+    fa: fa, equivGrade: equivGrade, gradeName: gradeName, repReward: repReward,
     newGame: newGame, maxHp: maxHp, grade: grade, totalConn: totalConn, effStat: effStat,
     thirstLevel: thirstLevel, thirstPenalty: thirstPenalty, isHyeolgwi: isHyeolgwi,
     career: career, rankName: rankName, nextRank: nextRank, examFee: examFee, questBonus: questBonus,
