@@ -10,8 +10,9 @@
     TRIBUTE_RATIO: 0.15,       // 엄지 상납금
     BONUS_FIXER: 0.05,         // 해결사 의뢰 보상 +5%
     BONUS_THUMB: 0.10,         // 엄지 의뢰 보상 +10%
-    PROMOTE_POINTS: 3,         // 승급 시 능력치 포인트
+    PROMOTE_POINTS: 5,         // 승급 시 능력치 포인트
     STAT_CAP: 60,
+    AN_SCALE: 100,             // 1안 = 10원. 아래 금액들은 기준값(×AN_SCALE)으로 적고 맨 아래에서 일괄 환산한다
     BLOOD_PACK_PRICE: 40,
     BLOOD_PACK_EFFECT: 50,
     DRAW_BLOOD_EFFECT: 35,
@@ -46,6 +47,26 @@
     { id: 'chop', name: '내려찍기', weapon: 'axe', type: 'attack', stars: 2, power: [4, 9], desc: '묵직한 일격' },
     { id: 'hew', name: '통째로 쪼개기', weapon: 'axe', type: 'attack', stars: 3, power: [8, 14], desc: '가장 큰 위력' },
     { id: 'shield', name: '방패 들기', weapon: 'axe', type: 'defense', power: [4, 7], desc: '방어 성공 시 빛 +1' },
+    // 일본도
+    { id: 'draw', name: '발도', weapon: 'katana', type: 'attack', stars: 1, power: [3, 6], desc: '칼집에서 뽑으며 베는 빠른 일격' },
+    { id: 'twin', name: '이연참', weapon: 'katana', type: 'attack', stars: 2, power: [3, 5], hits: 2, desc: '2회 연속 판정' },
+    { id: 'issen', name: '일섬', weapon: 'katana', type: 'attack', stars: 3, power: [9, 15], effect: 'tiebreak', desc: '높은 위력, 동점이면 승리' },
+    { id: 'parry', name: '받아 흘리기', weapon: 'katana', type: 'defense', power: [4, 7], desc: '방어 성공 시 빛 +1' },
+    // 권총
+    { id: 'shot', name: '사격', weapon: 'pistol', type: 'attack', stars: 1, power: [3, 5], desc: '낮은 위력, 안정적' },
+    { id: 'burst', name: '연사', weapon: 'pistol', type: 'attack', stars: 2, power: [2, 4], hits: 3, desc: '3회 연속 판정' },
+    { id: 'aim', name: '급소 조준', weapon: 'pistol', type: 'attack', stars: 3, power: [8, 13], effect: 'pierce', pierce: 0.5, desc: '방어 값 50% 관통' },
+    { id: 'cover', name: '몸 숨기기', weapon: 'pistol', type: 'evade', power: [3, 7], desc: '회피 성공 시 빛 +1' },
+    // 산탄총
+    { id: 'butt', name: '개머리판', weapon: 'shotgun', type: 'attack', stars: 1, power: [2, 4], staggerMult: 1.5, desc: '흐트러짐 게이지를 1.5배 깎음' },
+    { id: 'scatter', name: '산탄', weapon: 'shotgun', type: 'attack', stars: 2, power: [4, 6], hits: 2, desc: '2회 연속 판정' },
+    { id: 'point', name: '근접 발사', weapon: 'shotgun', type: 'attack', stars: 3, power: [10, 16], staggerMult: 1.5, desc: '큰 위력, 흐트러짐 1.5배' },
+    { id: 'barrel', name: '총신 막기', weapon: 'shotgun', type: 'defense', power: [3, 6], desc: '방어 성공 시 빛 +1' },
+    // 소총
+    { id: 'single', name: '단발', weapon: 'rifle', type: 'attack', stars: 1, power: [3, 5], desc: '낮은 위력, 안정적' },
+    { id: 'volley', name: '점사', weapon: 'rifle', type: 'attack', stars: 2, power: [3, 6], hits: 2, desc: '2회 연속 판정' },
+    { id: 'snipe', name: '저격', weapon: 'rifle', type: 'attack', stars: 3, power: [10, 17], effect: 'pierce', pierce: 0.7, desc: '방어 값 70% 관통' },
+    { id: 'retreat', name: '거리 벌리기', weapon: 'rifle', type: 'evade', power: [3, 7], desc: '회피 성공 시 빛 +1' },
     // 맨손
     { id: 'punch', name: '주먹', weapon: 'fist', type: 'attack', stars: 1, power: [2, 4], desc: '기본 공격' },
     { id: 'kick', name: '발차기', weapon: 'fist', type: 'attack', stars: 2, power: [4, 8], desc: '중간 위력' },
@@ -82,6 +103,10 @@
     sword: { id: 'sword', name: '장검', price: 300, desc: '균형 잡힌 칼. 안정적인 방어를 갖췄다.', skills: ['slash', 'cleave', 'finisher', 'guard'] },
     blunt: { id: 'blunt', name: '둔기', price: 300, desc: '묵직한 한 방. 방어를 뚫고 동점도 이긴다.', skills: ['bash', 'crush', 'brace'] },
     spear: { id: 'spear', name: '창', price: 450, desc: '찌르기 중심. 방어 일부를 관통한다.', skills: ['jab', 'lunge', 'impale', 'deflect'] },
+    katana: { id: 'katana', name: '일본도', price: 700, desc: '날카로운 외날의 도. 동점도 이기는 일섬이 특기.', skills: ['draw', 'twin', 'issen', 'parry'] },
+    pistol: { id: 'pistol', name: '권총', price: 1200, desc: '연사와 급소 조준. 방어를 절반 뚫는다.', skills: ['shot', 'burst', 'aim', 'cover'] },
+    shotgun: { id: 'shotgun', name: '산탄총', price: 1800, desc: '근거리에서 압도적인 한 방과 흐트러짐.', skills: ['butt', 'scatter', 'point', 'barrel'] },
+    rifle: { id: 'rifle', name: '소총', price: 2600, desc: '방어를 크게 뚫는 저격. 거리를 벌려 회피한다.', skills: ['single', 'volley', 'snipe', 'retreat'] },
     axe: { id: 'axe', name: '도끼', price: 600, desc: '흐트러짐을 노리는 무거운 날.', skills: ['rend', 'chop', 'hew', 'shield'] },
   };
 
@@ -168,6 +193,17 @@
       story: '첫 울음과 함께, 피에 대한 갈증도 함께 태어났다.' },
     baseStat: 5,
   };
+
+  // 안 환산 (1안 = 10원): 기준값 x AN_SCALE
+  (function scaleAn() {
+    const k = CONST.AN_SCALE;
+    ['an', 'living'].forEach(function (t) { Object.keys(GRADE[t]).forEach(function (g) { GRADE[t][g] *= k; }); });
+    Object.keys(WEAPONS).forEach(function (id) { WEAPONS[id].price *= k; });
+    CONST.BLOOD_PACK_PRICE *= k;
+    Object.keys(CAREERS).forEach(function (id) { if (CAREERS[id].wage) CAREERS[id].wage = CAREERS[id].wage.map(function (w) { return w * k; }); });
+    BIRTH.zones.forEach(function (z) { z.an *= k; });
+    BIRTH.pinky.an *= k; BIRTH.hyeolgwi.an *= k;
+  })();
 
   const DATA = {
     CONST: CONST, SKILLS: SKILLS, SKILL_LIST: SKILL_LIST, WEAPONS: WEAPONS, SCHOOLS: SCHOOLS,
